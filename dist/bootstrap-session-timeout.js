@@ -23,6 +23,7 @@
             warnAfter: 900000, // 15 minutes
             redirAfter: 1200000, // 20 minutes
             keepAliveInterval: 5000,
+            synchronizationInterval: 5000,
             keepAlive: true,
             ignoreUserActivity: false,
             clearWarningOnUserActivity: true,
@@ -143,14 +144,25 @@
                 });
                 keepAlivePinged = true;
 
-                if (opt.useLocalStorageSynchronization) {
-                    refreshLastKeepAliveSynchronizationValue();
-                }
-
                 setTimeout(function() {
                     keepAlivePinged = false;
                 }, opt.keepAliveInterval);
             }
+        }
+
+        var synchronizationPinged = false;
+
+        function localStorageSynchronization() {
+          if (!synchronizationPinged) {
+            synchronizationPinged = true;
+            refreshLastKeepAliveSynchronizationValue();
+
+            setTimeout(function() {
+                synchronizationPinged = false;
+            }, opt.synchronizationInterval);
+
+          }
+
         }
 
         function startSessionTimer() {
@@ -167,6 +179,10 @@
             // If keepAlive option is set to "true", ping the "keepAliveUrl" url
             if (opt.keepAlive) {
                 keepAlive();
+            }
+
+            if (opt.useLocalStorageSynchronization) {
+              localStorageSynchronization();
             }
 
             // Set session timer
@@ -202,18 +218,19 @@
         }
 
         function refreshLastKeepAliveSynchronizationValue() {
-            localStorage.setItem(opt.localStorageSynchronizationKey, new Date());
+            window.localStorage.setItem(opt.localStorageSynchronizationKey, new Date());
         }
 
         function setupLocalStorageEventObservation() {
             window.addEventListener('storage', function (e) {
                 if (e.key === opt.localStorageSynchronizationKey) {
+                  console.log('reset');
                     startSessionTimer();
                     if (modalIsDisplayed()) {
                         removeWarningModal();
                     }
                 }
-            }, );
+            });
         }
 
         function startCountdownTimer(type, reset) {
